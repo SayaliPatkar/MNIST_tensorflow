@@ -17,6 +17,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
+
+
 """
 takes two parameters,
 1. a String indicating whether to load training or test data
@@ -26,7 +28,6 @@ returns a tuple containing
 1. images
 2. labels
 """
-
 def loadData(dataset = "training", path = "."):
 
     if dataset is "training":
@@ -41,7 +42,29 @@ def loadData(dataset = "training", path = "."):
 
     with open(label_file, 'rb') as lb_file :
         magic, num = struct.unpack(">II", lb_file.read(8))
-        labels = np.fromfile(lb_file, dtype=np.uint8)
+        read_labels = np.fromfile(lb_file, dtype=np.uint8)
+        labels = np.zeros([read_labels.shape[0],10])
+        for i in range(read_labels.shape[0]):
+            if read_labels[i]==1:
+                labels[i,0] = 1
+            elif read_labels[i]==2:
+                labels[i,1] = 1
+            elif read_labels[i]==3:
+                labels[i,2] = 1
+            elif read_labels[i]==4:
+                labels[i,3] = 1
+            elif read_labels[i]==5:
+                labels[i,4] = 1
+            elif read_labels[i]==6:
+                labels[i,5] = 1
+            elif read_labels[i]==7:
+                labels[i,6] = 1
+            elif read_labels[i]==8:
+                labels[i,7] = 1
+            elif read_labels[i]==9:
+                labels[i,8] = 1
+            elif read_labels[i]==0:
+                labels[i,9] = 1
 
     with open(image_file, 'rb') as im_file :
         magic, num, rows, cols = struct.unpack(">IIII", im_file.read(16))
