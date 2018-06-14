@@ -1,8 +1,12 @@
 The following code is written to classify MNIST dataset images
 
 Dataset :
-MNIST data set uses 28*28-pixel greyscale images and label information stored in the form of IDX files.The logic for loading data manually can be found in MNISTData.py. For this project MNIST data set is used that can be downloaded from here
+
+MNIST dataset uses 28*28-pixel greyscale images and label information stored in the form of IDX files.The logic for loading data manually can be found in MNISTData.py. 
+
+For this project MNIST data set is used that can be downloaded from here
 http://yann.lecun.com/exdb/mnist/
+
 Note : tensorflow also provides hastle free means to load MNIST dataset, they can be used instead of these functions eg : from tensorflow.examples.tutorials.mnist import input_data
 
 You can find two training approaches that are used for training
