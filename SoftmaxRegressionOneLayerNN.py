@@ -5,8 +5,8 @@ The class represents single layered neural network
 using softmax activation for regression
 particular regression score at o/p pertains to one number from 0 to 9
 
-This is by all means a problem of using regression for classifying digits
-and not in a traditional snese a multiclass classification problem
+For training gradient descent optimization is used with customized batching logic
+Loss calculations are done using softmax cross entropy
 """
 class SoftmaxRegressionOneLayerNN:
     def __init__(self, batch_size : int=100, learning_rate: float=0.001, \
@@ -16,13 +16,18 @@ class SoftmaxRegressionOneLayerNN:
         self.training_epoches = training_epochs
 
     def train(self, train_images, train_labels, test_images, test_labels):
-        self.tf_input = np.asarray(train_images.reshape([train_images.shape[0],784]))
-        self.tf_true_pos = np.asarray(train_labels.reshape([train_labels.shape[0],10]))
-        print("*****************************",self.tf_input.shape)
-        print("*****************************", self.tf_true_pos.shape)
+
+        # mnist data image of shape 28*28=784
+        self._input = np.asarray(train_images.reshape([train_images.shape[0],784]))
+        # 0-9 digits recognition => 10 classes
+        self._true_pos = np.asarray(train_labels.reshape([train_labels.shape[0],10]))
+
+        self._test_input = np.asarray(test_images.reshape([test_images.shape[0],784]))
+        self._test_lab = np.asarray(test_labels.reshape([test_labels.shape[0],10]))
+
         # tf Graph Input
-        x = tf.placeholder(tf.float32, [self.batch_size, 784]) # mnist data image of shape 28*28=784
-        y = tf.placeholder(tf.float32, [self.batch_size, 10]) # 0-9 digits recognition => 10 classes
+        x = tf.placeholder(tf.float32, [self.batch_size, 784])
+        y = tf.placeholder(tf.float32, [self.batch_size, 10])
 
         # Setting weights W randomly non zero values and bias b as 0
         W = tf.Variable(tf.random_normal([784, 10], dtype=tf.float32, mean=0.0,\
@@ -38,34 +43,37 @@ class SoftmaxRegressionOneLayerNN:
 
         optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(cost)
 
-        def getNextBatch(batch_size =1, batch_count = 1):
+        def getNextBatch(batch_size =1, batch_count = 1, type = "train"):
             index = batch_size*batch_count
-            return self.tf_input[index-10:index,:], self.tf_true_pos[index-10:index,:]
-        # create input queues
-        #train_input_queue = tf.train.slice_input_producer(
-        #                            [self.tf_input, self.tf_true_pos],
-        #                            shuffle=False)
-        #test_input_queue = tf.train.slice_input_producer(
-        #                            [test_images, test_labels],
-        #                            shuffle=False, num_epochs=self.training_epoches)
-        #coord = tf.train.Coordinator()
+            if type is "train":
+                return self._input[index-10:index,:], self._true_pos[index-10:index,:]
+            else:
+                return self._test_input[index-10:index,:], self._test_lab[index-10:index,:]
 
-        # batch will now load up to 100 image-label-pairs on sess.run(...)
-        # this is faster and also gives better result on e.g. gradient calculation
-        #train_batch_images, train_batch_labels = tf.train.batch([self.tf_input, self.tf_true_pos], batch_size=self.batch_size)
-        #test_batch_images, test_batch_labels = tf.train.batch([test_images, tests_labels], batch_size=10)
-        print("input pipeline ready")
         with tf.Session() as sess:
             # "boilerplate" code
             sess.run([tf.local_variables_initializer(),\
             tf.global_variables_initializer()])
             #threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
+            test_batch_count1 = 1
+            total_accuracy1 = []
+            while test_batch_count1 < (self._test_input.shape[0])/(self.batch_size):
+                image_test_batch, label_test_batch = getNextBatch(self.batch_size, test_batch_count1, "test")
+                correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+                accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+                total_accuracy1.append(accuracy.eval({x: image_test_batch , y: label_test_batch}))
+                test_batch_count1 += 1
+            total_accuracy1 = np.mean(total_accuracy1)
+            print ("Accuracy:", total_accuracy1)
+
             for epoch in range(self.training_epoches):
+                if epoch is 0:
+                    print("Starting Optimization...")
                 batch_count = 1
                 epoch_cost = []
-                while batch_count < (self.tf_input.shape[0])/(self.batch_size):
-                    image_batch, label_batch = getNextBatch(self.batch_size, batch_count)
+                while batch_count < (self._input.shape[0])/(self.batch_size):
+                    image_batch, label_batch = getNextBatch(self.batch_size, batch_count, "train")
                     # will start reading, working data from input queue
                     # and "fetch" the results of the computation graph
                     # into raw_images and raw_labels
@@ -73,3 +81,15 @@ class SoftmaxRegressionOneLayerNN:
                     epoch_cost.append(cost_cal)
                     batch_count += 1
                 print("The Cost for epoch ", epoch," after training images ",batch_count," is ", np.mean(epoch_cost))
+            print("Optimization Complete, now evaluating accuracy...")
+            # Test model
+            test_batch_count = 1
+            total_accuracy = []
+            while test_batch_count < (self._test_input.shape[0])/(self.batch_size):
+                image_test_batch, label_test_batch = getNextBatch(self.batch_size, test_batch_count, "test")
+                correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+                accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+                total_accuracy.append(accuracy.eval({x: image_test_batch , y: label_test_batch}))
+                test_batch_count += 1
+            total_accuracy = np.mean(total_accuracy)
+            print ("Accuracy:", total_accuracy)
